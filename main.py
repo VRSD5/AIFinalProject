@@ -1,0 +1,76 @@
+import pygame
+import agent, area, search, problem
+import random
+
+def gameloop(screen):
+    run = True
+    clock = pygame.time.Clock()
+
+    env_state = []
+    env_state.append(area.RectArea((70, 0), (25, 25), "gray"))
+    env_state.append(area.RectArea((70, 40), (25, 25), "gray"))
+    env_state.append(area.RectArea((70, 80), (25, 25), "gray"))
+
+    env_state.append(area.RectArea((100, 20), (25, 25), "gray"))
+    env_state.append(area.RectArea((100, 60), (25, 25), "gray"))
+    env_state.append(area.RectArea((100, 100), (25, 25), "gray"))
+
+    env_state.append(area.RectArea((130, 0), (25, 25), "gray"))
+    env_state.append(area.RectArea((130, 40), (25, 25), "gray"))
+    env_state.append(area.RectArea((130, 80), (25, 25), "gray"))
+    #env_state.append(area.CircleArea((25, 70), 20, "gray"))
+
+    false_goal = area.RectArea((170, 40), (40, 40), "green")
+    goal = area.RectArea((180, 50), (20, 20), "green")
+
+    method = search.astar_search
+
+
+    agents = []
+    for i in range(100):
+        agents.append(agent.Agent((random.random() * 50,random.random() * 120), env_state, goal, method))
+    
+    render_scale = 5
+    render_offset = (0,0)
+
+    
+
+    while run:
+        for i in pygame.event.get():
+            if i.type == pygame.QUIT:
+                run = False
+
+        
+
+        for i in agents:
+            if i.update():
+                del i
+
+        screen.fill("black")
+
+        for i in env_state:
+            i.render(screen, render_offset, render_scale)
+
+        false_goal.render(screen, render_offset, render_scale)
+
+        for i in agents:
+            i.render(screen, render_offset, render_scale, render_path=True)
+        
+        
+        clock.tick(60)
+        pygame.display.update()
+        pygame.event.wait()
+
+
+def main():
+    pygame.init()
+
+    screen = pygame.display.set_mode((1000,600))
+    pygame.display.set_caption("Testing")
+    gameloop(screen)
+
+    
+
+if __name__=="__main__":
+    main()
+    
