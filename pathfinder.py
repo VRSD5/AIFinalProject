@@ -4,11 +4,20 @@
 class Pathfinder:
     pather = None
 
-    @classmethod
-    def get_pather():
-        if Pathfinder.pather == None:
-            Pathfinder.pather = Pathfinder(5)
+
     
     def __init__(self, method):
-        pass
+        self.method = method
+        self.waiting = set()
+        self.queue = []
+        self.complete = {}
+
+    def queue_path(self, index, problem):
+        self.queue.append((index, problem))
+        self.waiting.add(index)
+    
+    def pop_queue(self):
+        unit = self.queue.pop(0)
+        path = self.method(unit[1])
+        self.complete[unit[0]] = path
 

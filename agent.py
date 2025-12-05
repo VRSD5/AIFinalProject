@@ -7,24 +7,30 @@ import problem, search
 
 class Agent:
     speed = 0.5
+    count = 0
 
-    path_cache = []
+    
 
-    def __init__(self, pos, env, goal, method, color = (0,0,255)):
+    def __init__(self, pos, env, goal, pather, color = (0,0,255)):
         self.pos = pos
         self.env = env
         self.goal = goal
-        self.method = method
+        self.pather = pather
         self.color = color
-        
+        self.index = Agent.count
+        Agent.count += 1
+        self.path_cache = []
 
     def get_next_move(self):
 
         
         
-        if len(self.path_cache) == 0:
+        if len(self.path_cache) == 0 and not self.index in self.pather.waiting:
             prob = problem.ContinuousNavigation(self.pos, self.env, self.goal, 1000, 1000)
-            self.path_cache = self.method(prob)
+            self.pather.queue_path(self.index, prob)
+        elif self.index in self.pather.complete.keys():
+            self.path_cache = self.pather.complete[self.index]
+            
 
         if len(self.path_cache) == 0:
             return (0, 0, 0)

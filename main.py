@@ -1,11 +1,10 @@
 import pygame
-import agent, area, search, problem
+import agent, area, search, problem, pathfinder
 import random
 
-def gameloop(screen):
-    run = True
-    clock = pygame.time.Clock()
 
+
+def demoA(pather):
     env_state = []
     env_state.append(area.RectArea((70, 0), (25, 25), "gray"))
     env_state.append(area.RectArea((70, 40), (25, 25), "gray"))
@@ -28,10 +27,23 @@ def gameloop(screen):
 
     agents = []
     for i in range(100):
-        agents.append(agent.Agent((random.random() * 50,random.random() * 120), env_state, goal, method))
+        agents.append(agent.Agent((random.random() * 50,random.random() * 120), env_state, goal, pather))
     
     render_scale = 5
     render_offset = (0,0)
+
+    return env_state, false_goal, goal, method, agents, render_scale, render_offset
+
+def gameloop(screen):
+    run = True
+    clock = pygame.time.Clock()
+
+    pather = pathfinder.Pathfinder(search.astar_search)
+
+    demo = "A"
+    match demo:
+        case "A":
+            env_state, false_goal, goal, method, agents, render_scale, render_offset = demoA(pather)
 
     
 
@@ -40,11 +52,15 @@ def gameloop(screen):
             if i.type == pygame.QUIT:
                 run = False
 
-        
+        if len(pather.queue) != 0:
+            for i in range(1):
+                pather.pop_queue()
 
         for i in agents:
             if i.update():
                 del i
+        
+
 
         screen.fill("black")
 
@@ -59,7 +75,7 @@ def gameloop(screen):
         
         clock.tick(60)
         pygame.display.update()
-        pygame.event.wait()
+        #pygame.event.wait()
 
 
 def main():
