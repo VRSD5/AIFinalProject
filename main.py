@@ -38,7 +38,8 @@ def gameloop(screen):
     run = True
     clock = pygame.time.Clock()
 
-    pather = pathfinder.Pathfinder(search.astar_search)
+    # pather = pathfinder.Pathfinder(search.astar_search)
+    pather = pathfinder.Pathfinder(search.astar_search, use_hierarchical=True)
 
     demo = "A"
     match demo:
@@ -52,9 +53,11 @@ def gameloop(screen):
             if i.type == pygame.QUIT:
                 run = False
 
+        # if len(pather.queue) != 0:
+        #     for i in range(1):
+        #         pather.pop_queue()
         if len(pather.queue) != 0:
-            for i in range(1):
-                pather.pop_queue()
+            pather.process_group(5)  # Process 5 paths per frame
 
         for i in agents:
             if i.update():

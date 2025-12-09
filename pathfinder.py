@@ -1,23 +1,76 @@
-
+import search
 
 
 class Pathfinder:
-    pather = None
-
-
-    
-    def __init__(self, method):
+    def __init__(self, method, use_hierarchical=False):
         self.method = method
+        self.use_hierarchical = use_hierarchical
         self.waiting = set()
         self.queue = []
         self.complete = {}
+        self.goal_groups = {}  # Track agents by goal for shared computation
 
     def queue_path(self, index, problem):
         self.queue.append((index, problem))
         self.waiting.add(index)
-    
-    def pop_queue(self):
-        unit = self.queue.pop(0)
-        path = self.method(unit[1])
-        self.complete[unit[0]] = path
 
+        # Group agents by goal location
+        goal_pos = problem.goal_state.get_center()
+        if goal_pos not in self.goal_groups:
+            self.goal_groups[goal_pos] = []
+        self.goal_groups[goal_pos].append(index)
+
+    def pop_queue(self):
+        """Process one pathfinding request"""
+        if not self.queue:
+            return
+
+        unit = self.queue.pop(0)
+        index, prob = unit
+
+        if self.use_hierarchical:
+            path = search.hierarchical_astar(prob)
+        else:
+            path = self.method(prob)
+
+        self.complete[index] = path
+        if index in self.waiting:
+            self.waiting.remove(index)
+
+    def process_group(self, count=10):
+        """Process multiple pathfinding requests in batch"""
+        processed = 0
+
+        # Process requests spread across different goal groups
+        goals_to_process = list(self.goal_groups.keys())
+        goal_index = 0
+
+        while processed < count and self.queue:
+            # Round-robin through goal groups for fairness
+            if goals_to_process:
+                current_goal = goals_to_process[goal_index % len(goals_to_process)]
+
+                # Find next request for this goal
+                for i, (idx, prob) in enumerate(self.queue):
+                    if prob.goal_state.get_center() == current_goal:
+                        # Process this request
+                        if self.use_hierarchical:
+                            path = search.hierarchical_astar(prob)
+                        else:
+                            path = self.method(prob)
+
+                        self.complete[idx] = path
+                        if idx in self.waiting:
+                            self.waiting.remove(idx)
+                        self.queue.pop(i)
+                        processed += 1
+                        break
+
+                goal_index += 1
+            else:
+                # No goal grouping, just process next
+                self.pop_queue()
+                processed += 1
+
+        # Clean up empty goal groups
+        self.goal_groups = {k: v for k, v in self.goal_groups.items() if v}

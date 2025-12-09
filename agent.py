@@ -21,23 +21,29 @@ class Agent:
         Agent.count += 1
         self.path_cache = []
 
+
+
     def get_next_move(self):
 
-        
-        
-        if len(self.path_cache) == 0 and not self.index in self.pather.waiting:
+        # Check if our path is ready from the pathfinder
+        if self.index in self.pather.complete.keys():
+            self.path_cache = self.pather.complete[self.index]
+            # Remove from complete dict and waiting set
+            del self.pather.complete[self.index]
+            if self.index in self.pather.waiting:
+                self.pather.waiting.remove(self.index)
+
+        # If we have no path and aren't waiting for one, request a new path
+        if len(self.path_cache) == 0 and self.index not in self.pather.waiting:
+            # Create problem from CURRENT position (self.pos updates as agent moves!)
             prob = problem.ContinuousNavigation(self.pos, self.env, self.goal, 1000, 1000)
             self.pather.queue_path(self.index, prob)
-        elif self.index in self.pather.complete.keys():
-            self.path_cache = self.pather.complete[self.index]
-            
+            return (0, 0, 0)  # Wait for path
 
         if len(self.path_cache) == 0:
-            return (0, 0, 0)
+            return (0, 0, 0)  # Still waiting
 
         return self.path_cache.pop(0)
-
-        
 
     
     def update(self):

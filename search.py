@@ -1,9 +1,10 @@
 import collections
+import math
 import random
 import sys
 from queue import PriorityQueue
 
-
+import area
 from problem import ContinuousNavigation, Problem
 from problem import Node
 
@@ -132,6 +133,54 @@ def astar_search(problem: Problem) -> list[str]:
     return []
     return random_search(problem)
 
+
+def hierarchical_astar(problem: ContinuousNavigation) -> list[str]:
+    """Hierarchical A* using waypoints in continuous space"""
+    start = problem.initial_state
+    goal = problem.goal_state.get_center()
+
+    # If close enough, just use regular A*
+    dist = math.sqrt((goal[0] - start[0]) ** 2 + (goal[1] - start[1]) ** 2)
+    if dist < 30:
+        return astar_search(problem)
+
+    # Create intermediate waypoints along straight line
+    num_waypoints = max(3, int(dist / 20))
+    waypoints = []
+
+    for i in range(1, num_waypoints):
+        t = i / num_waypoints
+        wx = start[0] * (1 - t) + goal[0] * t
+        wy = start[1] * (1 - t) + goal[1] * t
+        waypoints.append((wx, wy))
+
+    # Add final goal
+    waypoints.append(goal)
+
+    # Pathfind to each waypoint sequentially
+    full_path = []
+    current_pos = start
+
+    for waypoint in waypoints:
+        # Create subproblem to this waypoint
+        from area import CircleArea
+        subgoal = CircleArea(waypoint, 3.0, "green")
+        subproblem = ContinuousNavigation(
+            current_pos, problem.maze, subgoal,
+            problem.width, problem.height
+        )
+
+        subpath = astar_search(subproblem)
+        if not subpath:  # Can't reach waypoint, fallback
+            return astar_search(problem)
+
+        full_path.extend(subpath)
+
+        # Update current position
+        for action in subpath:
+            current_pos = problem.result(current_pos, action)
+
+    return full_path
 def greedy_search(problem: Problem) -> list[str]:
     """Implements Greedy Search."""
     #TODO Implement this method. Make sure you implement the heuristic methods h() in
