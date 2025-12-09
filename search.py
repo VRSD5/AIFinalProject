@@ -110,19 +110,21 @@ def uniform_search(problem: Problem) -> list[str]:
     return random_search(problem)
 
 
-def astar_search(problem: Problem) -> list[str]:
-    """Implements A* Search."""
+# ------------------ METHOD 1: STANDARD A* (TIME-UNAWARE) ------------------
 
-    node : Node
-    node = Node(problem.initial_state)
-    #print(node)
+def astar_search(problem: Problem) -> list[str]:
+    """
+    Standard A* Search.
+    NOTE: This is time-unaware and WILL CAUSE COLLISIONS in a multi-agent system.
+    """
+    node: Node = Node(problem.initial_state)
     if problem.is_goal(node.state):
         return Node.path_actions(node)
     frontier = PriorityQueue()
     frontier.put((node.path_cost + problem.h(node.state), node.id, node))
-    reached  = {problem.initial_state:node}
+    reached = {problem.initial_state: node}
     while frontier.qsize() > 0:
-        node : Node = frontier.get()[2]
+        node: Node = frontier.get()[2]
         for child in Node.expand(node, problem):
             s = child.state
             if problem.is_goal(s):
@@ -131,54 +133,104 @@ def astar_search(problem: Problem) -> list[str]:
                 reached[s] = child
                 frontier.put((child.path_cost + problem.h(child.state), child.id, child))
     return []
-    return random_search(problem)
 
 
-def hierarchical_astar(problem: ContinuousNavigation) -> list[str]:
-    """Hierarchical A* using waypoints in continuous space"""
-    start = problem.initial_state
+# ------------------ METHOD 2: PRIORITIZED A* (GROUP PATHFINDING) ------------------
+
+def astar_search_prioritized(problem: ContinuousNavigation) -> list[str]:
+    """
+    Prioritized A* (PA*): The core Group Pathfinding method.
+    Uses the state (x, y, time) to respect dynamic constraints from higher-priority agents.
+    """
+    node: Node = Node(problem.initial_state)
+    if problem.is_goal(node.state):
+        return Node.path_actions(node)
+
+    frontier = PriorityQueue()
+    frontier.put((node.path_cost + problem.h(node.state), node.id, node))
+    # We use the full (x, y, time) state for tracking reached nodes
+    reached = {problem.initial_state: node}
+
+    while frontier.qsize() > 0:
+        node: Node = frontier.get()[2]
+
+        for child in Node.expand(node, problem):
+            s = child.state
+
+            # The collision check (both static and dynamic) is now handled in problem.actions()
+
+            if problem.is_goal(s):
+                return Node.path_actions(child)
+
+            # Use the full (x, y, time) state for checking reached nodes
+            if s not in reached or child.path_cost < reached[s].path_cost:
+                reached[s] = child
+                frontier.put((child.path_cost + problem.h(child.state), child.id, child))
+    return []
+
+
+# ------------------ METHOD 3: PRIORITIZED HIERARCHICAL A* (PHA*) ------------------
+
+def hierarchical_astar_prioritized(problem: ContinuousNavigation) -> list[str]:
+    """
+    Prioritized Hierarchical A* (PHA*).
+    Uses the Prioritized A* (PA*) function for its low-level search segments.
+    """
+    start = problem.initial_state[:2]  # Get initial position (x, y)
     goal = problem.goal_state.get_center()
 
-    # If close enough, just use regular A*
+    # If close enough, use prioritized A*
     dist = math.sqrt((goal[0] - start[0]) ** 2 + (goal[1] - start[1]) ** 2)
     if dist < 30:
-        return astar_search(problem)
+        return astar_search_prioritized(problem)
 
-    # Create intermediate waypoints along straight line
+    # --- High-Level Plan: Waypoint Calculation ---
     num_waypoints = max(3, int(dist / 20))
     waypoints = []
-
     for i in range(1, num_waypoints):
         t = i / num_waypoints
         wx = start[0] * (1 - t) + goal[0] * t
         wy = start[1] * (1 - t) + goal[1] * t
         waypoints.append((wx, wy))
-
-    # Add final goal
     waypoints.append(goal)
 
-    # Pathfind to each waypoint sequentially
+    # --- Low-Level Execution ---
     full_path = []
     current_pos = start
+    current_time = problem.initial_state[2]  # Start time from the problem object
 
     for waypoint in waypoints:
-        # Create subproblem to this waypoint
         from area import CircleArea
         subgoal = CircleArea(waypoint, 3.0, "green")
+
+        # Create a new problem for the sub-search
         subproblem = ContinuousNavigation(
             current_pos, problem.maze, subgoal,
             problem.width, problem.height
         )
 
-        subpath = astar_search(subproblem)
-        if not subpath:  # Can't reach waypoint, fallback
-            return astar_search(problem)
+        # Pass constraints and set the starting time/position for the subproblem
+        subproblem.add_constraints(problem.dynamic_constraints)
+        subproblem.initial_state = (current_pos[0], current_pos[1], current_time)
+
+        # Run the time-aware prioritized search (PA*)
+        subpath = astar_search_prioritized(subproblem)
+
+        if not subpath:  # Path blocked
+            return []
 
         full_path.extend(subpath)
 
-        # Update current position
+        # Update current position and time for the next waypoint
+        temp_problem = ContinuousNavigation(current_pos, problem.maze, subgoal, problem.width, problem.height)
+        temp_problem.initial_state = (current_pos[0], current_pos[1], current_time)
+
         for action in subpath:
-            current_pos = problem.result(current_pos, action)
+            # Result returns (x, y, time)
+            next_state = temp_problem.result(temp_problem.initial_state, action)
+            current_pos = next_state[:2]
+            current_time = next_state[2]
+            temp_problem.initial_state = next_state  # Update for next action in path
 
     return full_path
 def greedy_search(problem: Problem) -> list[str]:
