@@ -11,6 +11,7 @@ class Pathfinder:
         self.waiting = set()
         self.queue = []
         self.complete = {}
+        
 
     def queue_path(self, index, problem):
         self.queue.append((index, problem))
