@@ -20,6 +20,7 @@ class Agent:
         self.priority = Agent.count
         Agent.count += 1
         self.path_cache = []
+        self.steps = 0
 
     def get_next_move(self):
 
@@ -49,9 +50,12 @@ class Agent:
         if self.goal.check_collision(self.pos):
             return True
 
+        self.steps += 1
+
         dir = self.get_next_move()
         if len(dir) == 3:
             return False
+        
 
         dir_length = util.length(dir)
         self.pos = (self.pos[0] + (dir[0] / dir_length) * self.speed, self.pos[1] + (dir[1] / dir_length) * self.speed)
