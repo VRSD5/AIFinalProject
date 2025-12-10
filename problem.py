@@ -154,7 +154,9 @@ class ContinuousNavigation(Problem[tuple[float, float, int]]):
 
     def actions(self, curr_state: tuple[float, float, int]) -> list[tuple]:
         """Returns available legal actions (velocity vectors) from the current state."""
-        x, y, time = curr_state
+        
+        x = curr_state[0]
+        y = curr_state[1]
         ret = []
 
         # The agent's speed is 0.5 (from Agent class)
@@ -180,19 +182,20 @@ class ContinuousNavigation(Problem[tuple[float, float, int]]):
                 # Check static collision
                 if not self.collision_at(next_x, next_y):
                     # Check dynamic collision (the core of prioritized planning)
-                    if not self.is_dynamic_collision((next_x, next_y), time + 1):
-                        ret.append(offset_scaled)
+                    #if not self.is_dynamic_collision((next_x, next_y), time + 1):
+                    ret.append(offset_scaled)
 
         return ret
 
     def result(self, curr_state: tuple[float, float, int], action: tuple) -> tuple[float, float, int]:
         """Applies an action and returns the resulting state (new position and time)."""
-        x, y, time = curr_state
+        x = curr_state[0]
+        y = curr_state[1]
 
         # The logic in actions() should prevent illegal moves, but we check here too.
         new_x = x + action[0]
         new_y = y + action[1]
-        new_time = time + 1
+        new_time = 1 + 1
 
         return (new_x, new_y, new_time)
 
