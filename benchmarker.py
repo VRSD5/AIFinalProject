@@ -17,19 +17,19 @@ def generate_env_A(dist):
     env_state.append(area.RectArea((130, 80), (25, 25), "gray"))
     # env_state.append(area.CircleArea((25, 70), 20, "gray"))
 
-    goal = area.RectArea((dist - 30, 50), (20, 20), "green")
+    goal = area.RectArea((200 - 30, 50), (20, 20), "green")
 
-    return env_state, goal, (0, 0, 50, 120), (0, 0, dist, 125)
+    return env_state, goal, (0, 0, 50, 120), (0, 0, 200, 125) #50_000, 1000)
 
 
 def main():
     envs = ["A"]
     # Updated: Include "Astar" (standard Agent) and "HAAgent" for comparison
-    agent_types = [ "HAAgent"]
+    agent_types = ["Group", "HAAgent"]
     # Reduced max agent count for initial tests to manage execution time
-    agent_counts = [1]
-    dists = [200, 400, 800, 1600, 3200, 10_000]
-
+    agent_counts = [1, 10, 1000, 10000]
+    #dists = [200, 400, 800, 1600, 3200, 10_000]
+    dists = [200]
     for env in envs:
         for agent_type in agent_types:
             for agent_count in agent_counts:
@@ -46,7 +46,7 @@ def main():
                     print("----------------------------\n")
 
 
-def run_bench(env_select, agent_select, agent_count, dist, max_steps=100_000):
+def run_bench(env_select, agent_select, agent_count, dist, max_steps=1000_000):
     match env_select:
         case "A":
             env_state, goal, start_region, region = generate_env_A(dist)
@@ -65,16 +65,16 @@ def run_bench(env_select, agent_select, agent_count, dist, max_steps=100_000):
                 # Uses the new HAAgent, which calls hastar.hierarchical_astar_search
                 agents.append(agent.HAAgent((start_region[0] + random.random() * start_region[2],
                                              start_region[1] + random.random() * start_region[3]), env_state, goal))
+        case "Group":
+            for i in range(agent_count):
+                # Uses the new HAAgent, which calls hastar.hierarchical_astar_search
+                agents.append(agent.CoordinatedAgent((start_region[0] + random.random() * start_region[2],
+                                             start_region[1] + random.random() * start_region[3]), env_state, goal))
         case "Simple":
             for i in range(agent_count):
                 agents.append(agent.simpleAgent((start_region[0] + random.random() * start_region[2],
                                                  start_region[1] + random.random() * start_region[3]), env_state, goal))
-        case "Flow":
-            flow = flowField.FlowField(goal, env_state, density=2, region=region)
-            for i in range(agent_count):
-                agents.append(agent.FlowAgent((start_region[0] + random.random() * start_region[2],
-                                               start_region[1] + random.random() * start_region[3]), env_state, goal,
-                                              flow))
+
 
     return benchmark(agents, flow, max_steps=max_steps)
 
