@@ -1,10 +1,9 @@
 import collections
-import math
 import random
 import sys
 from queue import PriorityQueue
 
-import area
+
 from problem import ContinuousNavigation, Problem
 from problem import Node
 
@@ -109,130 +108,41 @@ def uniform_search(problem: Problem) -> list[str]:
     return []
     return random_search(problem)
 
+def astar_search(problem: Problem) -> list[tuple[float, float]]:
+    """A* Search that returns movement vectors (dx, dy) instead of strings."""
 
-# ------------------ METHOD 1: STANDARD A* (TIME-UNAWARE) ------------------
+    start = problem.initial_state
+    node = Node(start)
 
-def astar_search(problem: Problem) -> list[str]:
-    """
-    Standard A* Search.
-    NOTE: This is time-unaware and WILL CAUSE COLLISIONS in a multi-agent system.
-    """
-    node: Node = Node(problem.initial_state)
-    if problem.is_goal(node.state):
-        return Node.path_actions(node)
-    frontier = PriorityQueue()
-    frontier.put((node.path_cost + problem.h(node.state), node.id, node))
-    reached = {problem.initial_state: node}
-    while frontier.qsize() > 0:
-        node: Node = frontier.get()[2]
-        for child in Node.expand(node, problem):
-            s = child.state
-            if problem.is_goal(s):
-                return Node.path_actions(child)
-            if not (s in reached) or child.path_cost < reached[s].path_cost:
-                reached[s] = child
-                frontier.put((child.path_cost + problem.h(child.state), child.id, child))
-    return []
-
-
-# ------------------ METHOD 2: PRIORITIZED A* (GROUP PATHFINDING) ------------------
-
-def astar_search_prioritized(problem: ContinuousNavigation) -> list[str]:
-    """
-    Prioritized A* (PA*): The core Group Pathfinding method.
-    Uses the state (x, y, time) to respect dynamic constraints from higher-priority agents.
-    """
-    node: Node = Node(problem.initial_state)
-    if problem.is_goal(node.state):
-        return Node.path_actions(node)
+    # If already at goal
+    if problem.is_goal(start):
+        return []
 
     frontier = PriorityQueue()
-    frontier.put((node.path_cost + problem.h(node.state), node.id, node))
-    # We use the full (x, y, time) state for tracking reached nodes
-    reached = {problem.initial_state: node}
+    frontier.put((node.path_cost + problem.h(start), node.id, node))
 
-    while frontier.qsize() > 0:
-        node: Node = frontier.get()[2]
+    reached = {start: node}
+    h_func = problem.h  # local reference (faster)
+
+    while not frontier.empty():
+        _, _, node = frontier.get()
 
         for child in Node.expand(node, problem):
             s = child.state
 
-            # The collision check (both static and dynamic) is now handled in problem.actions()
-
             if problem.is_goal(s):
-                return Node.path_actions(child)
+                # RETURN DIRECT MOVEMENT VECTORS
+                path = Node.path_actions(child)
+                # convert actions to (dx, dy)
+                return [(a[0], a[1]) for a in path]
 
-            # Use the full (x, y, time) state for checking reached nodes
             if s not in reached or child.path_cost < reached[s].path_cost:
                 reached[s] = child
-                frontier.put((child.path_cost + problem.h(child.state), child.id, child))
+                f = child.path_cost + h_func(s)
+                frontier.put((f, child.id, child))
+
     return []
 
-
-# ------------------ METHOD 3: PRIORITIZED HIERARCHICAL A* (PHA*) ------------------
-
-def hierarchical_astar_prioritized(problem: ContinuousNavigation) -> list[str]:
-    """
-    Prioritized Hierarchical A* (PHA*).
-    Uses the Prioritized A* (PA*) function for its low-level search segments.
-    """
-    start = problem.initial_state[:2]  # Get initial position (x, y)
-    goal = problem.goal_state.get_center()
-
-    # If close enough, use prioritized A*
-    dist = math.sqrt((goal[0] - start[0]) ** 2 + (goal[1] - start[1]) ** 2)
-    if dist < 30:
-        return astar_search_prioritized(problem)
-
-    # --- High-Level Plan: Waypoint Calculation ---
-    num_waypoints = max(3, int(dist / 20))
-    waypoints = []
-    for i in range(1, num_waypoints):
-        t = i / num_waypoints
-        wx = start[0] * (1 - t) + goal[0] * t
-        wy = start[1] * (1 - t) + goal[1] * t
-        waypoints.append((wx, wy))
-    waypoints.append(goal)
-
-    # --- Low-Level Execution ---
-    full_path = []
-    current_pos = start
-    current_time = problem.initial_state[2]  # Start time from the problem object
-
-    for waypoint in waypoints:
-        from area import CircleArea
-        subgoal = CircleArea(waypoint, 3.0, "green")
-
-        # Create a new problem for the sub-search
-        subproblem = ContinuousNavigation(
-            current_pos, problem.maze, subgoal,
-            problem.width, problem.height
-        )
-
-        # Pass constraints and set the starting time/position for the subproblem
-        subproblem.add_constraints(problem.dynamic_constraints)
-        subproblem.initial_state = (current_pos[0], current_pos[1], current_time)
-
-        # Run the time-aware prioritized search (PA*)
-        subpath = astar_search_prioritized(subproblem)
-
-        if not subpath:  # Path blocked
-            return []
-
-        full_path.extend(subpath)
-
-        # Update current position and time for the next waypoint
-        temp_problem = ContinuousNavigation(current_pos, problem.maze, subgoal, problem.width, problem.height)
-        temp_problem.initial_state = (current_pos[0], current_pos[1], current_time)
-
-        for action in subpath:
-            # Result returns (x, y, time)
-            next_state = temp_problem.result(temp_problem.initial_state, action)
-            current_pos = next_state[:2]
-            current_time = next_state[2]
-            temp_problem.initial_state = next_state  # Update for next action in path
-
-    return full_path
 def greedy_search(problem: Problem) -> list[str]:
     """Implements Greedy Search."""
     #TODO Implement this method. Make sure you implement the heuristic methods h() in
@@ -255,4 +165,3 @@ def greedy_search(problem: Problem) -> list[str]:
                 frontier.put((problem.h(child.state), child.id, child))
     return []
     return random_search(problem)
-
