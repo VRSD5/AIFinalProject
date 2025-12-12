@@ -27,7 +27,7 @@ class Agent:
             self.path_cache = search.astar_search(prob)
 
         if len(self.path_cache) == 0:
-            return (0, 0, 0)
+            return 0, 0, 0
 
         return self.path_cache.pop(0)
 
@@ -119,7 +119,6 @@ class HAAgent(Agent):
                                0.2 * scale)
 
 
-# --- NEW CLASS FOR GROUP PATHFINDING ---
 class CoordinatedAgent(Agent):
     speed = 0.5
     count = 0
@@ -270,7 +269,6 @@ class simpleAgent(Agent):
                                0.2 * scale)
 
 
-# --- NEW CLASS FOR GROUP PATHFINDING ---
 class CoordinatedAgent(Agent):
     speed = 0.5
     count = 0

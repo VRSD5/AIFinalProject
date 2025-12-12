@@ -1,9 +1,7 @@
 import time, random
 import area, agent, flowField
 
-# --------------------------------------------
-# GLOBAL SCALE (LOWERED SO SIMULATION RUNS FAST)
-# --------------------------------------------
+
 SCALE = 2
 
 
@@ -39,13 +37,6 @@ def main():
     for env in envs:
         for agent_type in agent_types:
             for agent_count in agent_counts:
-
-                # # Skip expensive agents at very high count
-                # if agent_count > 500 and agent_type in ["Astar", "HAAgent", "CoordinatedAgent"]:
-                #     print(f"Skipping {agent_type} for {agent_count} agents (too slow)")
-                #     print("----------------------------\n")
-                #     continue
-
                 time_taken, total_finished, average_steps = run_bench(env, agent_type, agent_count)
 
                 print("----- Benchmark Result -----")

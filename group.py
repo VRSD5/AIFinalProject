@@ -1,88 +1,102 @@
-# group.py
-
 import util
-from problem import ContinuousNavigation, Node
-from area import Area
-import math
 
-
-class PathReservationSystem:
+class WHCAReservationSystem:
     """
-    Manages reserved locations on a time-discretized grid to prevent agent collisions.
+    Windowed Hierarchical Cooperative A* Reservation Table
+    Fully compatible with your current CoordinatedAgent implementation.
     """
 
-    def __init__(self, step_density=5.0, time_step_scale=1.0):
-        # Maps a (grid_x, grid_y, time_step) tuple to the ID of the agent that reserved it.
-        # Grid cells are discrete, time is discrete.
-        self.reservations = {}
-        self.step_density = step_density
-        self.time_step_scale = time_step_scale
-        self.agent_path_reservations = {}  # Stores all reservations for a specific agent ID
+    def __init__(self, grid_size=2.0, window=5):
+        self.grid_size = grid_size
+        self.window = window
 
-    def get_grid_pos(self, pos: tuple[float, float]) -> tuple[int, int]:
-        """Converts continuous position to discrete grid coordinates."""
-        grid_x = int(pos[0] // self.step_density)
-        grid_y = int(pos[1] // self.step_density)
-        return (grid_x, grid_y)
+        # (grid_x, grid_y, time) → agent_id
+        self.res_table = {}
 
-    def reserve_path(self, agent_id: int, path_moves: list[tuple], start_pos: tuple[float, float]):
+        # agent_id → list of reservation keys
+        self.agent_last_res = {}
+
+
+    def to_grid(self, pos):
+        return (
+            int(pos[0] // self.grid_size),
+            int(pos[1] // self.grid_size)
+        )
+
+    # --------------------------------------------------------------
+    def reserve_path(self, agent_id, moves, start_pos):
+        # Clear previous reservations by this agent
+        if agent_id in self.agent_last_res:
+            for key in self.agent_last_res[agent_id]:
+                if key in self.res_table and self.res_table[key] == agent_id:
+                    del self.res_table[key]
+
+        new_keys = []
+        cx, cy = start_pos
+        t = 0
+
+        # Reserve starting cell at time 0
+        gx, gy = self.to_grid((cx, cy))
+        key = (gx, gy, t % self.window)
+        self.res_table[key] = agent_id
+        new_keys.append(key)
+
+        # Reserve along the A* path for the next "window" timesteps
+        for mv in moves:
+            t += 1
+            length = util.length(mv)
+            if length == 0:
+                continue
+
+            cx += (mv[0] / length) * 0.5
+            cy += (mv[1] / length) * 0.5
+
+            gx, gy = self.to_grid((cx, cy))
+            key = (gx, gy, t % self.window)
+
+            # Priority rule: lower agent_id wins WHCA reservations
+            if key not in self.res_table or self.res_table[key] > agent_id:
+                self.res_table[key] = agent_id
+
+            new_keys.append(key)
+
+            if t >= self.window:
+                break
+
+        self.agent_last_res[agent_id] = new_keys
+
+    # --------------------------------------------------------------
+    def is_reserved(self, pos, time_step, agent_id):
         """
-        Reserves space-time blocks for an entire calculated path.
-
-        Args:
-            agent_id (int): Unique ID of the agent making the reservation.
-            path_moves (list[tuple]): Sequence of (dx, dy) moves from an A* search.
-            start_pos (tuple): Continuous starting position (x, y).
+        Returns True if this position is blocked by another agent in the WHCA* table.
+        Uses relaxed collision testing to reduce deadlocks.
         """
-        current_pos = start_pos
-        time_step = 0
+        gx, gy = self.to_grid(pos)
+        key = (gx, gy, time_step % self.window)
 
-        # Clear old reservations for this agent
-        if agent_id in self.agent_path_reservations:
-            for reservation_key in self.agent_path_reservations[agent_id]:
-                if reservation_key in self.reservations:
-                    del self.reservations[reservation_key]
+        # If no one reserved it, it's free
+        if key not in self.res_table:
+            return False
 
-        new_reservations = []
+        other = self.res_table[key]
 
-        # Start by reserving the current cell at time 0
-        grid_pos = self.get_grid_pos(current_pos)
-        key = (grid_pos[0], grid_pos[1], time_step)
+        # If we reserved it ourselves, it's free
+        if other == agent_id:
+            return False
 
-        # Only reserve if it's not currently reserved by another agent
-        if key not in self.reservations or self.reservations[key] == agent_id:
-            self.reservations[key] = agent_id
-            new_reservations.append(key)
+        # Soft collision test — allow near misses if safe
+        cell_center_x = gx * self.grid_size + self.grid_size / 2
+        cell_center_y = gy * self.grid_size + self.grid_size / 2
 
-        for move in path_moves:
-            time_step += 1
+        dist = util.length((cell_center_x - pos[0], cell_center_y - pos[1]))
 
-            # Estimate the new continuous position
-            move_length = util.length(move)
-            agent_speed = 0.5  # Assuming standard agent speed from agent.py
+        # Allow close-but-safe movements
+        if dist > 0.7:
+            return False
 
-            # Calculate the full position for the next move
-            current_pos = (current_pos[0] + (move[0] / move_length) * agent_speed,
-                           current_pos[1] + (move[1] / move_length) * agent_speed)
-
-            grid_pos = self.get_grid_pos(current_pos)
-            key = (grid_pos[0], grid_pos[1], time_step)
-
-            # Reserve the new cell at the new time step
-            if key not in self.reservations or self.reservations[key] == agent_id:
-                self.reservations[key] = agent_id
-                new_reservations.append(key)
-
-        self.agent_path_reservations[agent_id] = new_reservations
-
-    def is_reserved(self, pos: tuple[float, float], time_step: int, current_agent_id: int) -> bool:
-        """Checks if a grid cell at a specific time step is reserved by another agent."""
-        grid_pos = self.get_grid_pos(pos)
-        key = (grid_pos[0], grid_pos[1], time_step)
-
-        # A cell is reserved if it's in the dictionary and reserved by someone else
-        return key in self.reservations and self.reservations[key] != current_agent_id
+        # Otherwise, it's treated as a conflict
+        return True
 
 
-# Global instance of the reservation system
-ReservationSystem = PathReservationSystem()
+# Global WHCA* reservation system instance used by CoordinatedAgent
+ReservationSystem = WHCAReservationSystem()
