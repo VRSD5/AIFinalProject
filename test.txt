@@ -1,0 +1,78 @@
+pygame-ce 2.5.3 (SDL 2.30.12, Python 3.12.11)
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : Simple
+Agent Count     : 1
+Env Scale       : 200
+Env Density     : 35
+Time Taken      : 0.000 s
+Total Finished  : 1
+Average Steps   : 153.00
+----------------------------
+
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : Simple
+Agent Count     : 1
+Env Scale       : 400
+Env Density     : 35
+Time Taken      : 0.001 s
+Total Finished  : 1
+Average Steps   : 214.00
+----------------------------
+
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : Flow
+Agent Count     : 1
+Env Scale       : 200
+Env Density     : 35
+Time Taken      : 0.013 s
+Total Finished  : 1
+Average Steps   : 366.00
+----------------------------
+
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : Flow
+Agent Count     : 1
+Env Scale       : 400
+Env Density     : 35
+Time Taken      : 0.091 s
+Total Finished  : 1
+Average Steps   : 866.00
+----------------------------
+
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : HAstar
+Agent Count     : 1
+Env Scale       : 200
+Env Density     : 35
+Time Taken      : 0.026 s
+Total Finished  : 1
+Average Steps   : 399.00
+----------------------------
+
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : HAstar
+Agent Count     : 1
+Env Scale       : 400
+Env Density     : 35
+Time Taken      : 0.185 s
+Total Finished  : 1
+Average Steps   : 967.00
+----------------------------
+
+----- Benchmark Result -----
+Environment     : Density
+Agent Type      : Group
+Agent Count     : 1
+Env Scale       : 200
+Env Density     : 35
+Time Taken      : 0.078 s
+Total Finished  : 1
+Average Steps   : 283.00
+----------------------------
+

@@ -266,7 +266,7 @@ class ContinuousNavigation(Problem[tuple[Area]]):
 
  
 
-    def __init__(self, starting_pos, collision_areas: tuple[Area, ...], goal_area: Area, width: int, height: int):
+    def __init__(self, starting_pos, collision_areas: tuple[Area, ...], goal_area: Area):
         """
         Initializes a MazeNavigation problem.
 
@@ -280,8 +280,6 @@ class ContinuousNavigation(Problem[tuple[Area]]):
         """
         super().__init__(starting_pos)
         self.goal_state = goal_area
-        self.width = width
-        self.height = height
         self.maze = collision_areas
 
     def is_goal(self, curr_pos: tuple[int, int]) -> bool:

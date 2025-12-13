@@ -1,9 +1,36 @@
+"""
+flowfield.py
+
+Implements a simple flow-field pathfinding system using backpropagation
+from a goal area. Each node stores a direction vector that agents can
+query to move toward the goal while avoiding obstacles.
+
+Dependencies:
+- pygame (for rendering)
+- area (defines Area objects with position and collision checks)
+- util (vector math helpers)
+"""
+
 import pygame
 import area, util
 
 class FlowField:
+    """
+    Represents a 2D flow field for navigation.
+
+    A flow field consists of evenly spaced nodes covering a region.
+    Each node stores a direction vector pointing toward the goal or
+    away from obstacles. Agents can sample the field to determine
+    movement direction.
+    """
 
     class FlowNode:
+        """
+        A single node within the flow field.
+
+        Each node has a position and a direction vector that indicates
+        where an agent at that position should move.
+        """
         def __init__(self, pos : tuple, target_pos : tuple, target_dir : tuple = None):
             #Calculate direction to target
             self.pos = pos
@@ -99,7 +126,7 @@ class FlowField:
 
         # return dir 
 
-        closet = None
+        closest = None
         min = 999999999999999
         for i in offsets:
             loc = (start[0] + i[0], start[1] + i[1])

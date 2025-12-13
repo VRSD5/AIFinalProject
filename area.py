@@ -1,8 +1,29 @@
+"""
+area.py
+
+Defines abstract and concrete geometric areas used for collision detection,
+navigation goals, and rendering in a 2D environment.
+
+Areas provide a unified interface for:
+- Collision checks
+- Center queries
+- Nearest-point queries
+- Rendering
+
+Concrete implementations include rectangular and circular areas.
+"""
+
 import pygame
 from abc import ABC, abstractmethod
 import math
 
 class Area:
+    """
+    Abstract base class for all navigable or collidable areas.
+
+    Subclasses must implement collision detection, geometry queries,
+    updating logic, and rendering behavior.
+    """
     pos : tuple
     size : tuple
     color = None
@@ -31,6 +52,9 @@ class Area:
         pass
 
 class RectArea(Area):
+    """
+    Axis-aligned rectangular area.
+    """
     def __init__(self, pos, size, color):
         super().__init__(color)
         self.pos = pos
@@ -54,6 +78,9 @@ class RectArea(Area):
         pygame.draw.rect(screen, self.color, rect)
 
 class CircleArea(Area):
+    """
+    Circular area defined by a center point and radius.
+    """
     def __init__(self, center, radius, color):
         super().__init__(color)
         self.center = center
@@ -79,9 +106,6 @@ class CircleArea(Area):
         
         pygame.draw.circle(screen, self.color, ((self.center[0] - offset[0]) * scale, (self.center[1] - offset[1]) * scale), self.radius * scale)
 
-
-class ConcaveShapeArea(Area):
-    pass
 
 
 

@@ -6,6 +6,8 @@ def length(vector):
 
 def unit_vector(vector):
     l = length(vector)
+    if l == 0:
+        return (0, 0)
     return (vector[0] / l, vector[1] / l)
 
 def dir_average(a, b):
